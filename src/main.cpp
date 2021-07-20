@@ -104,9 +104,9 @@ int main(  int argc, const char* argv[] ){
 	string heuristics = "";
 	// Default heuristics
 	if( argc == 3 ){
-		heuristics = "_h5_h1";
+		heuristics = "_h5_h7";
 		engine->addHeuristic( new H5() );
-		engine->addHeuristic( new H1() );
+		engine->addHeuristic( new H7() );
 	}
 	else{
 		for( int i = 3; i < argc; i++ ){
