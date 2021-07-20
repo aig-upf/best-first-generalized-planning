@@ -3,13 +3,16 @@
 
 #include "common.h"
 #include "variable.h"
+#include "state_descriptor.h"
 #include "state.h"
 #include "expression.h"
 
 class Condition : public Expression{
 public:
 	// Non-parameterized actions
-	Condition( const string &name = "", Variable *lhs = 0, Variable *rhs = 0 ) : Expression( name, lhs, rhs ){}
+	Condition( StateDescriptor *sd, const string &name = "", Variable *lhs = 0, Variable *rhs = 0 ) : Expression( name, lhs, rhs ){
+	    _sd = sd;
+	}
 
 	virtual ~Condition(){}
 	
@@ -26,17 +29,20 @@ public:
 		if( titled ) ret+= "\n";
 		return ret;
 	}
+
+protected:
+    StateDescriptor *_sd;
 };
 
 class GreaterEqual : public Condition{
 public:
-	GreaterEqual( Variable *lhs, Variable *rhs ) : Condition( ">=", lhs, rhs ) {}
+	GreaterEqual( StateDescriptor *sd, Variable *lhs, Variable *rhs ) : Condition( sd, ">=", lhs, rhs ) {}
 	
 	virtual ~GreaterEqual(){}
 	
 	virtual bool evalCondition( const State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return lhs >= rhs;
 	}
 
@@ -44,26 +50,26 @@ public:
 
 class LesserEqual : public Condition{
 public:
-	LesserEqual( Variable *lhs, Variable *rhs ) : Condition( "<=", lhs, rhs ) {}
+	LesserEqual( StateDescriptor *sd, Variable *lhs, Variable *rhs ) : Condition( sd, "<=", lhs, rhs ) {}
 	
 	virtual ~LesserEqual(){}
 	
 	virtual bool evalCondition( const State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return lhs <= rhs;
 	}
 
 }; 
 class Greater : public Condition{
 public:
-	Greater( Variable *lhs, Variable *rhs ) : Condition( ">", lhs, rhs ) {}
+	Greater( StateDescriptor *sd, Variable *lhs, Variable *rhs ) : Condition( sd, ">", lhs, rhs ) {}
 	
 	virtual ~Greater(){}
 	
 	virtual bool evalCondition( const State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return lhs > rhs;
 	}
 
@@ -71,13 +77,13 @@ public:
 
 class Lesser : public Condition{
 public:
-	Lesser( Variable *lhs, Variable *rhs ) : Condition( "<", lhs, rhs ) {}
+	Lesser( StateDescriptor *sd, Variable *lhs, Variable *rhs ) : Condition( sd, "<", lhs, rhs ) {}
 	
 	virtual ~Lesser(){}
 	
 	virtual bool evalCondition( const State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return lhs < rhs;
 	}
 
@@ -85,13 +91,13 @@ public:
 
 class Equals : public Condition{
 public:
-	Equals( Variable *lhs, Variable *rhs ) : Condition( "=", lhs, rhs ) {}
+	Equals( StateDescriptor *sd, Variable *lhs, Variable *rhs ) : Condition( sd, "=", lhs, rhs ) {}
 	
 	virtual ~Equals(){}
 	
 	virtual bool evalCondition( const State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return lhs == rhs;
 	}
 
@@ -99,31 +105,27 @@ public:
 
 class Add : public Condition{
 public:
-	Add( Variable *lhs, Variable *rhs, int max_val = MAX_VAL ) : Condition( "+", lhs, rhs ){
-		_max_val = max_val;
-	}
+	Add( StateDescriptor *sd, Variable *lhs, Variable *rhs ) : Condition( sd, "+", lhs, rhs ){}
 	
 	virtual ~Add(){}
 	
 	virtual bool evalCondition( const State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
-		return lhs + rhs < _max_val;
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
+		auto bound = _sd->getBound( _lhs->getID(), s->getInstanceID() );
+		return lhs + rhs < bound;
 	}
-
-private:
-	int _max_val;
 }; 
 
 class Subtract : public Condition{
 public:
-	Subtract( Variable *lhs, Variable *rhs ) : Condition( "-", lhs, rhs ) {}
+	Subtract( StateDescriptor *sd, Variable *lhs, Variable *rhs ) : Condition( sd, "-", lhs, rhs ) {}
 	
 	virtual ~Subtract(){}
 	
 	virtual bool evalCondition( const State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return lhs >= rhs;
 	}
 
@@ -131,13 +133,13 @@ public:
 
 class Different : public Condition{
 public:
-	Different( Variable *lhs, Variable *rhs ) : Condition( "!=", lhs, rhs ) {}
+	Different( StateDescriptor *sd, Variable *lhs, Variable *rhs ) : Condition( sd, "!=", lhs, rhs ) {}
 	
 	virtual ~Different(){}
 	
 	virtual bool evalCondition( const State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return lhs != rhs;
 	}
 

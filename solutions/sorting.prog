@@ -1,0 +1,11 @@
+0. swap(i,j)
+1. inc(i)
+2. goto(0,!(( zf = 1 )( cf = 0 )))
+3. cmp(vector(i),vector(j))
+4. goto(7,!(( zf = 0 )( cf = 1 )))
+5. dec(i)
+6. goto(0,!(( zf = 1 )( cf = 1 )))
+7. swap(i,j)
+8. dec(i)
+9. goto(3,!(( zf = 1 )( cf = 0 )))
+10. end

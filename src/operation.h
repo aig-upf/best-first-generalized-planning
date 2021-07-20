@@ -8,7 +8,9 @@
 class Operation : public Expression{
 public:
 	// Non-parameterized actions
-	Operation( const string &name = "", Variable *lhs = 0, Variable *rhs = 0 ) : Expression( name, lhs, rhs ) {}
+	Operation( StateDescriptor *sd, const string &name = "", Variable *lhs = 0, Variable *rhs = 0 ) : Expression( name, lhs, rhs ) {
+	    _sd = sd;
+	}
 
 	virtual ~Operation(){}
 	
@@ -22,7 +24,7 @@ public:
 	
 	virtual void setEffect( State *s, int val ) const{
 		if( val >= 0 )
-			setLeftVarNum( s, val );
+			setLeftVarNum(_sd, s, val);
 	}
 
 	virtual string toString( bool titled = true ) const{
@@ -33,23 +35,26 @@ public:
 		ret += "( " + _lhs->toString() + " " + _name + " " + _rhs->toString() + " )\n";
 		return ret;
 	}
+
+protected:
+    StateDescriptor *_sd;
 };
 
 class AddAssign : public Operation{
 public:
-	AddAssign( Variable *lhs = 0, Variable *rhs = 0 ) : Operation( "+=", lhs, rhs ) {}
+	AddAssign( StateDescriptor *sd, Variable *lhs = 0, Variable *rhs = 0 ) : Operation( sd, "+=", lhs, rhs ) {}
 	
 	virtual ~AddAssign(){}
 	
-	virtual int update( State *s ) const{
+	/*virtual int update( State *s ) const{
 		int effect = getEffect( s );
 		setEffect( s, effect );
 		return effect;
-	}
+	}*/
 	
 	virtual int getEffect( State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return lhs + rhs;
 	}
 
@@ -57,13 +62,13 @@ public:
 
 class SubtractAssign : public Operation{
 public:
-	SubtractAssign( Variable *lhs = 0, Variable *rhs = 0 ) : Operation( "-=", lhs, rhs ) {}
+	SubtractAssign( StateDescriptor *sd, Variable *lhs = 0, Variable *rhs = 0 ) : Operation( sd, "-=", lhs, rhs ) {}
 	
 	virtual ~SubtractAssign(){}
 	
 	virtual int getEffect( State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return lhs - rhs;
 	}
 
@@ -71,15 +76,14 @@ public:
 
 class Compare : public Operation{
 public:
-	Compare( Variable *lhs = 0, Variable *rhs = 0 ) : Operation( "-", lhs, rhs ) {}
+	Compare( StateDescriptor *sd, Variable *lhs = 0, Variable *rhs = 0 ) : Operation( sd, "-", lhs, rhs ) {}
 	
 	virtual ~Compare(){}
 	
 	virtual int getEffect( State *s ) const{
-		int lhs = getLHS( s );
-		int rhs = getRHS( s );
-		if( lhs < 0 or rhs < 0 )
-			return -1; // [ENHANCEMENT] This should never happen, otherwise return an infinite
+		int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
+		assert( lhs >= 0 and rhs >= 0);
 		return lhs - rhs;
 	}
 	
@@ -90,16 +94,34 @@ public:
 
 class Assign : public Operation{
 public:
-	Assign( Variable *lhs = 0, Variable *rhs = 0 ) : Operation( "=", lhs, rhs ) {}
+	Assign( StateDescriptor *sd, Variable *lhs = 0, Variable *rhs = 0 ) : Operation( sd, "=", lhs, rhs ) {}
 	
 	virtual ~Assign(){}
 	
 	virtual int getEffect( State *s ) const{
-		//int lhs = getLHS( s );
-		int rhs = getRHS( s );
+		//int lhs = getLHS( _sd, s );
+		int rhs = getRHS( _sd, s );
 		return rhs;
 	}
 
-}; 
+};
+
+// ToDo test this class
+class TestMax : public Operation{
+public:
+    TestMax( StateDescriptor *sd, Variable *lhs = 0, Variable *rhs = 0 ) : Operation( sd, "?", lhs, rhs ){}
+
+    virtual ~TestMax(){}
+
+    virtual  int getEffect( State *s ) const{
+        int lhs = getLHS( _sd, s );
+        auto bound = _sd->getBound( _lhs->getID(), s->getInstanceID() );
+        return bound - (lhs+1);
+    }
+
+    virtual void setEffect( State *s, int val ) const{
+        // no updates for test
+    }
+};
 
 #endif

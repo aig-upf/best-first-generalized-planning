@@ -13,11 +13,12 @@ public:
 	}
 		
 	~Domain(){
-		if( _sd ) delete _sd;
+        _action_name_to_idx.clear();
 		for( int i = 0; i < int( _actions.size() ); i++ ){
 			if( _actions[ i ] )
 				delete _actions[ i ];
 		}
+        if( _sd ) delete _sd;
 	}
 
 	void setName( const string &name = "" ){
@@ -30,6 +31,7 @@ public:
 	
 	void addAction( Action *a ){
 		_actions.push_back( a );
+        _action_name_to_idx[ a->getName() ] = int( _actions.size() ) - 1;
 	}
 	
 	StateDescriptor* getStateDescriptor(){
@@ -43,13 +45,12 @@ public:
 	Action* getAction( int id ){
 		return _actions[ id ];
 	}
-	
+
 	Action* getAction( const string &name = "" ){
-		for( int id = 0; id < int( _actions.size()); id++ ){
-			if( _actions[ id ]->getName() == name )
-				return _actions[ id ];
-		}
-		return NULL;
+	    auto it = _action_name_to_idx.find( name );
+	    if( it == _action_name_to_idx.end() )
+	        return NULL;
+	    return getAction( it->second );
 	}
 	
 	int getNumActions() const{
@@ -74,6 +75,7 @@ private:
 	string _name;
 	StateDescriptor *_sd;
 	vector< Action* > _actions;
+	map< string, int > _action_name_to_idx;
 }; 
 
 #endif

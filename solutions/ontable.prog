@@ -1,0 +1,13 @@
+0. dec(o2)
+1. goto(0,!(( zf = 1 )( cf = 0 )))
+2. dec(o1)
+3. goto(2,!(( zf = 1 )( cf = 0 )))
+4. unstack(o1,o2)
+5. put-down(o1)
+6. inc(o1)
+7. goto(4,!(( zf = 1 )( cf = 0 )))
+8. inc(o2)
+9. goto(2,!(( zf = 1 )( cf = 0 )))
+10. inc(o3)
+11. goto(0,!(( zf = 1 )( cf = 0 )))
+12. end

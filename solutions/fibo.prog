@@ -1,0 +1,7 @@
+0. vector-add(a,b)
+1. dec(b)
+2. vector-add(a,b)
+3. set(b,a)
+4. inc(a)
+5. goto(0,!(( zf = 1 )( cf = 0 )))
+6. end

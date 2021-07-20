@@ -1,0 +1,8 @@
+0. inc(j)
+1. goto(4,!(( zf = 0 )( cf = 0 )))
+2. vector-right(i)
+3. vector-right(i)
+4. vector-left(i)
+5. cmp(vector(i),vector(j))
+6. goto(1,!(( zf = 1 )( cf = 0 )))
+7. end

@@ -6,186 +6,217 @@
 
 class State{
 public:
-	State( int ncounters = 0, int npointers = 0, int nconst_pointers = 0, int nregisters = 0  ){
-		_counters = vector< int >( ncounters, 0 );
-		_pointers = vector< int >( npointers, 0 );
-		_const_pointers = vector< int >( nconst_pointers, 0 );
-		_registers = vector< int >( nregisters, -1 );
+    // Default constructor
+    State(){
+
+    }
+
+    // Constructor mainly used for initial states
+	State( StateDescriptor *sd, int instance_id = 0 ){
+        auto var_types = sd->getVarTypes();
+        _typed_pointers.resize( var_types.size() );
+        for( int i = 0; i < int( var_types.size() ); i++ ){
+            auto num_typed_pointers = sd->getNumTypedPointers( var_types[i] );
+            _typed_pointers[i].resize( num_typed_pointers, 0 );
+        }
+
+        auto pred_types = sd->getPredicateTypes();
+        _typed_registers.resize( pred_types.size() );
+        _instance_id = instance_id;
 	}
 
-	State( const vector<vector<int> > &v ){
-		_counters = v[0];
-		_pointers = v[1];
-		_const_pointers = v[2];
-		_registers = v[3];
+	// Constructor mainly used to make copies and propagate effects
+	State( State *s ){
+		_typed_pointers = s->getTypedPointers();
+		_typed_registers = s->getTypedRegisters();
+		_instance_id = s->getInstanceID();
 	}
 	
-	State( const State &s ){
-		vector<vector<int> > vars = s.getVars();
-		_counters = vars[0];
-		_pointers = vars[1];
-		_const_pointers = vars[2];
-		_registers = vars[3];
-	}
-	
-	State( const State *s ){
-		vector<vector<int> > vars = s->getVars();
-		_counters = vars[0];
-		_pointers = vars[1];
-		_const_pointers = vars[2];
-		_registers = vars[3];
-	}
-	
-	State* copy(){
+	State* copy() {
 		return new State( this );
 	}
-	
-	void setCounter( int idx, int value ){
-		_counters[ idx ] = value;
-	}
-	
-	void setPointer( int idx, int value ){
-		_pointers[ idx ] = value;
-	}
-	
-	void setRegister( int idx, int value ){
-		_registers[ idx ] = value;
-	}
-	
-	void setConstPointer( int idx, int value ){
-		_const_pointers[ idx ] = value;
-	}
-	
-	void setVar( int idx, int value, const string &vtype = "" ){
-		if( vtype == "counter" )
-			setCounter( idx, value );
-		else if( vtype == "pointer" )
-			setPointer( idx, value );
-		else if( vtype == "const-pointer" )
-			setConstPointer( idx, value );
-		else if( vtype == "register" )
-			setRegister( idx, value );
-	}
-	
-	int getCounter( int idx ) const{
-		if( idx >= int( _counters.size() ) )
-			return -1;
-		return _counters[ idx ];
-	}
-	
-	int getPointer( int idx ) const{
-		if( idx >= int( _pointers.size() ) )
-			return -1;
-		return _pointers[ idx ];
-	}
-	
-	int getRegister( int idx ) const{
-		if( idx >= int( _registers.size() ) )
-			return -1;
-		return _registers[ idx ];
-	}
-	
-	int getConstPointer( int idx ) const{
-		if( idx >= int( _const_pointers.size() ) )
-			return -1;
-		return _const_pointers[ idx ];
-	}
-	
-	vector< vector< int > > getVars() const{
-		vector< vector< int > > vars;
-		vars.push_back( _counters );
-		vars.push_back( _pointers );
-		vars.push_back( _const_pointers );
-		vars.push_back( _registers );
-		return vars;
-	}
-	
-	vector< int > getCounters() const{
-		return _counters;
+
+	vector< vector< int > > getTypedPointers() const{
+	    return _typed_pointers;
 	}
 
-	vector< int > getPointers() const{
-		return _pointers;
+	vector< map< vector<int>, int > > getTypedRegisters() const{
+	    return _typed_registers;
 	}
 
-	vector< int > getRegisters() const{
-		return _registers;
-	}
+	void setPointersSize( unsigned p_size ){
+        _typed_pointers.resize( p_size );
+    }
+
+    void setRegistersSize( unsigned r_size ){
+        _typed_registers.resize( r_size );
+    }
+
+    void addPointer( StateDescriptor *sd, const string &var_type, const string &pointer_name ){
+        bool add = sd->addPointer( var_type, pointer_name );
+        assert( add );
+        auto var_idx = sd->getVarIDX( var_type );
+        assert( var_idx < (int)_typed_pointers.size() );
+        _typed_pointers[ var_idx ].resize( sd->getNumTypedPointers( var_type ) );
+    }
+
+	void setPointer( StateDescriptor *sd, const string &var_type, int idx, int value ){
+        auto var_idx = sd->getVarIDX( var_type );
+        assert( var_idx < (int)_typed_pointers.size() );
+        assert( idx < (int)_typed_pointers[ var_idx ].size() );
+        _typed_pointers[ var_idx ][ idx ] = value;
+    }
+
+    void setPointer( StateDescriptor *sd, int pointer_id, int value ){
+        auto var_id = sd->getPointerVarType( pointer_id );
+        string var_type = sd->getVarName( var_id );
+        auto pointer_idx = sd->getPointerTypedIDX( pointer_id );
+        setPointer(sd, var_type, pointer_idx, value );
+    }
+
+    void setPointer( StateDescriptor *sd, const string &pointer_name, int value ) {
+        auto pointer_id = sd->getTypeID( pointer_name );
+        setPointer( sd, pointer_id, value );
+    }
+
+    int getPointer( StateDescriptor *sd, const string &var_type, int idx ) const {
+        auto var_idx = sd->getVarIDX( var_type );
+        assert( var_idx < (int)_typed_pointers.size() );
+        assert( idx < (int)_typed_pointers[ var_idx ].size() );
+        return _typed_pointers[ var_idx ][ idx ];
+    }
+
+    int getPointer( StateDescriptor *sd, int pointer_id ) const {
+        auto var_id = sd->getPointerVarType( pointer_id );
+        string var_type = sd->getVarName( var_id );
+        auto pointer_idx = sd->getPointerTypedIDX( pointer_id );
+        return getPointer( sd, var_type, pointer_idx );
+    }
+
+    int getPointer( StateDescriptor *sd, const string &pointer_name ) const {
+        auto pointer_id = sd->getTypeID( pointer_name );
+        return getPointer( sd, pointer_id );
+    }
+
+    // In "var_obj" is encoded the object ids
+    void addRegister( StateDescriptor *sd, const string &pred_type, const vector<int> &var_obj_idx, int value = 1 ){
+        auto var_id_list = sd->getPredicateVarTypeIDs( pred_type );
+        auto pred_idx = sd->getPredicateIDX( pred_type );
+        assert( pred_idx < (int)_typed_registers.size() );
+        _typed_registers[ pred_idx ][ var_obj_idx ] = value;
+    }
+
+    // In "value" is encoded the var-object binding
+    /*void delRegister( StateDescriptor *sd, const string &pred_type, const vector<int> &value ){
+        auto pred_idx = sd->getPredicateIDX( pred_type );
+        assert( pred_idx < (int)_typed_registers.size() );
+        auto it = _typed_registers[ pred_idx ].find( value );
+        if( it != _typed_registers[ pred_idx ].end() )
+            _typed_registers[ pred_idx ].erase( it );
+    }*/
+
+    int getRegister( StateDescriptor *sd, const string &pred_type, const vector<int> &var_obj_idx ) const{
+        auto pred_idx = sd->getPredicateIDX( pred_type );
+        assert( pred_idx < (int)_typed_registers.size() );
+        auto it = _typed_registers[ pred_idx ].find( var_obj_idx );
+        if( it == _typed_registers[ pred_idx ].end() )
+            return 0;
+        return (it->second);
+    }
 	
-	vector< int > getConstPointers() const{
-		return _const_pointers;
-	}
-	
-	int getNumCounters() const{
-		return int( _counters.size() );
-	}
-	
-	int getNumPointers() const{
-		return int( _pointers.size() );
-	}
-	
-	int getNumRegisters() const{
-		return int( _registers.size() );
-	}
-	
-	int getNumConstPointers() const{
-		return int( _const_pointers.size() );
+	vector< vector< int > > getStateVars() const{
+		vector< vector< int > > state_vars = _typed_pointers;
+		for( auto pred_regs : _typed_registers ) {
+		    for( auto sreg : pred_regs) {
+		        // add only strictly positive valued predicates
+		        if( sreg.second == 0 )
+		            continue;
+		        state_vars.push_back( sreg.first );
+		        state_vars[ int( state_vars.size() )-1 ].push_back( sreg.second );
+            }
+        }
+		return state_vars;
 	}
 	
 	int size() const{
-		return getNumCounters() + getNumPointers() + getNumRegisters() + getNumConstPointers();
+	    int res = 0;
+	    for( auto tp : _typed_pointers )
+	        res += int(tp.size());
+	    for( auto tr : _typed_registers )
+	        res += int(tr.size());
+	    return res;
 	}
 
 	string toString() const{
-		string ret = "[STATE]:\n";
-		ret += "COUNTERS:";
-		for( int i = 0; i < int( _counters.size() ); i++){
-			ret += " " + to_string( _counters[i] );
-		} 
-		ret += "\nPOINTERS:";
-		for( int i = 0; i < int( _pointers.size() ); i++){
-			ret += " " + to_string( _pointers[i] );
-		} 
-		ret += "\nCONSTANT POINTERS:";
-		for( int i = 0; i < int( _const_pointers.size() ); i++){
-			ret += " " + to_string( _const_pointers[i] );
-		} 
-		ret += "\nREGISTERS:";
-		for( int i = 0; i < int( _registers.size() ); i++){
-			ret += " " + to_string( _registers[i] );
-		} 
+		string ret = "[STATE]:";
+		for( unsigned i = 0; i< _typed_pointers.size(); i++ ) {
+            ret += "\nPOINTERS #" + to_string(i) +":";
+            for( const auto p : _typed_pointers[i] ){
+                ret += " " + to_string(p);
+            }
+        }
+		for( unsigned i = 0; i < _typed_registers.size(); i++ ){
+            ret += "\nREGISTERS #" + to_string(i) + ":";
+            for( auto sv : _typed_registers[ i ] ){
+                ret += " (";
+                for( int k = 0; k < int( sv.first.size()); k++ ){
+                    ret += (k?",":"") + to_string( sv.first[k] );
+                }
+                ret += ")=" + to_string( sv.second );
+            }
+		}
 		ret += "\n";
 		return ret;
-		
 	}
-	
-	string toString( StateDescriptor *sd ){
-		string ret = "";
-		vector< string > var_names = sd->getVars();
-		for( int i = 0; i < int( var_names.size() ); i++ ){
-			string vtype = sd->getVType( var_names[ i ] );
-			int id = sd->getID( var_names[ i ] );
 
-			string value = "";
-			if( vtype == "counter" )
-				value = to_string( _counters[ id ] );
-			else if( vtype == "pointer" )
-				value = to_string( _pointers[ id ] );
-			else if( vtype == "const-pointer" )
-				value = to_string( _const_pointers[ id ] );
-			else if( vtype == "register" )
-				value = to_string( _registers[ id ] );
+	// ToDo register value interpretation (which requires of "typed var"->"num of typed objects")
+	string toString( StateDescriptor *sd ){//, map< int, int > & var_id_to_num_objects ){
+		string ret = "[STATE]:\n";
 
-			ret += "( " + var_names[ i ] + " = " + value + " )\n";
+		vector< string > pointer_names = sd->getPointerNames();
+		vector< string > var_types = sd->getVarTypes();
+		vector< string > pred_types = sd->getPredicateTypes();
+
+		for( unsigned i = 0; i < var_types.size(); i++ ){
+            vector< int > pointer_ids = sd->getTypedPointerIDs( var_types[i] );
+            for( unsigned j = 0; j < pointer_ids.size(); j++ ){
+                int p_idx = sd->getPointerIDX( pointer_ids[j] );
+                ret += "( " + var_types[i] + " " + pointer_names[ p_idx ] + ": " + to_string(_typed_pointers[i][j]) + " )\n";
+            }
+		}
+
+		for( unsigned i = 0; i < pred_types.size(); i++ ){
+		    ret += "+ " + pred_types[i] + "(";
+		    vector< string > v_names = sd->getPredicateVarNames( pred_types[ i ] );
+		    for( unsigned j = 0; j < v_names.size(); j++ ){
+		        ret += (j?",":"") + v_names[j];
+		    }
+		    ret += "):";
+		    for( auto sv : _typed_registers[ i ] ){
+		        ret += " (";
+		        for( int k = 0; k < int( sv.first.size()); k++ ){
+		            ret += (k?",":"") + to_string( sv.first[k] );
+		        }
+                ret += ")="+ to_string(sv.second);
+		    }
+		    ret += "\n";
 		}
 		return ret;
 	}
 
+	// ToDo test the next two functions
+	void setInstanceID( int ins_id ){
+        _instance_id = ins_id;
+    }
+
+	int getInstanceID() const{
+        return _instance_id;
+    }
+
 private:
-	vector<int> _counters;
-	vector<int> _pointers;
-	vector<int> _const_pointers;
-	vector<int> _registers;
+    vector< vector< int > > _typed_pointers; // VarType -> {pointer1 = value1; ...; pointerN = valueN }
+	vector< map< vector< int >, int > > _typed_registers; // PredType ( size = |Obj1| x ... x |ObjM|;  or size=1 for 0-ary)
+	int _instance_id;
 };
 
 #endif

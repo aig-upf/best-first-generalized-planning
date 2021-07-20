@@ -1,4 +1,5 @@
 #define VALIDATOR
+//#define DEBUG
 #include "common.h"
 #include "variable.h"
 #include "state_descriptor.h"
@@ -19,17 +20,23 @@
 #include "heuristic.h"
 #include "engine.h"
 
-//#define DEBUG
 
 int main(  int argc, const char* argv[] ){
 	if( argc < 3 ){
 		cout << "[ERROR] Incorrect input." << endl;
 		cout << "[INFO] Execute: ./validator.bin <program_file> <problem_folder/> (INF|NOINF)?" << endl;
-		cout << "[INFO] Example: ./validator.bin triangular-sum.prog domains/triangular-sum/" << endl;
+		cout << "[INFO] Example: ./validator.bin triangular-sum.prog domains/validation/triangular-sum/" << endl;
 		cout << "[INFO] The domain file must be domain.txt with all instances numbered from 1.txt to [n].txt" << endl;
 		return -1;
 	}
-	
+
+    int precision = 3;
+    cout.setf( ios::fixed );
+    cout.precision( precision );
+
+    time_t start, parse_time;
+    time( &start );
+
 	bool infinite_detection = true;
 	
 	if( argc == 4 && string(argv[ 3 ]) == "NOINF" ){
@@ -49,6 +56,7 @@ int main(  int argc, const char* argv[] ){
 	vector< string > program_instructions;
 	string instruction;
 	while( getline( ifs_program, instruction ) ){
+		if( instruction.size() == 0u ) continue;
 		instruction = instruction.substr( instruction.find_first_of( ". " ) + 2 );
 		program_instructions.push_back( instruction );
 	}
@@ -56,7 +64,6 @@ int main(  int argc, const char* argv[] ){
 	int program_lines = int( program_instructions.size() );	
 	
 	string problem_folder = string( argv[ 2 ] );
-	
 	ifstream ifs_domain( problem_folder + "domain.txt" );
 	if( !ifs_domain ){
 		cout << "[ERROR] domain.txt does not exist." << endl;
@@ -73,8 +80,9 @@ int main(  int argc, const char* argv[] ){
 		delete parser;
 		return -3;
 	}
-	
-	cout << "[INFO] Parsed domain" << endl;	
+
+    time( &parse_time );
+    cout << "[INFO] Parsed domain. [" << difftime( parse_time, start ) << "]" << endl;
 	
 	// Generating the GP problem
 	GeneralizedPlanningProblem *gpp = new GeneralizedPlanningProblem();
@@ -93,7 +101,7 @@ int main(  int argc, const char* argv[] ){
 		}
 		ifs_instance.close();
 		
-		if( parser->parseInstance( dom, ins, input_instance ) )
+		if( parser->parseInstance( dom, ins, input_instance, i-2 ) )
 			gpp->addInstance( ins );
 		else{
 			delete ins;
@@ -101,12 +109,16 @@ int main(  int argc, const char* argv[] ){
 			return -4;
 		}
 	}
-	
-	cout << "[INFO] Generalized Planning Problem created." << endl;
+
+    time_t gpp_time;
+    time( &gpp_time );
+    cout << "[INFO] Generalized Planning Problem created. [" << difftime( gpp_time, parse_time ) << "]" << endl;
 	
 	GeneralizedDomain *gd = new GeneralizedDomain( dom, program_lines );
-	
-	cout << "[INFO] Generalized Domain created." << endl;
+
+    time_t gd_time;
+    time( &gd_time );
+    cout << "[INFO] Generalized Domain created. [" << difftime( gd_time, gpp_time ) << "]" << endl;
 			
 	Program *p = new Program( program_lines );
 	for( int i = 0; i < program_lines; i++ ){
@@ -117,16 +129,19 @@ int main(  int argc, const char* argv[] ){
 		}
 		p->setInstruction( i, ins );
 	}
+
+	time_t prog_time;
+	time( &prog_time );
+	cout << "[INFO] Program loaded. [" << difftime( prog_time, gd_time ) << "]" << endl;
 	cout << "[INFO] Read program: " << endl;
 	cout << p->toString( false ) << endl;
 	
 	vector< ProgramState* > vps = p->run( gpp, infinite_detection );
-	
 	if( int( vps.size() ) > 0 ){
 		for( int i = 0; i < int( vps.size() ); i++ ){
 			#ifdef DEBUG
 			cout << "INSTANCE #" << (i+1) << endl;
-			cout << vps[ i ]->toString() << endl;
+			//cout << vps[ i ]->toString(dom->getStateDescriptor()) << endl;
 			#endif
 			if( vps[ i ] )
 				delete vps[ i ];
@@ -136,6 +151,10 @@ int main(  int argc, const char* argv[] ){
 	else{
 		cout << "[INFO] INVALID GENERAL PLAN :(" << endl;
 	}
+
+	time_t end_time;
+	time( &end_time );
+	cout << "[INFO] Total time: " << difftime(end_time, start ) << endl;
 		
 	if( p ) delete p;
 	if( gd ) delete gd;

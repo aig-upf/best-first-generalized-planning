@@ -7,17 +7,24 @@
 // where only the latters have access to registers
 class Variable{
 public:
-	Variable( const string &name = "", const string &vtype = "constant", int id = 0, bool am = false ){
+	Variable( const string &name = "1", const string &vtype = "constant",
+              int id = 0, const vector< int > &param_ids = vector<int>() ){
+        assert(_param_ids.size() == 0 or (_param_ids.size()>0 and vtype == "predicate" ) );
+        assert( vtype == "constant" or vtype == "pointer" or vtype == "predicate" );
 		_name = name;
 		_vtype = vtype;
 		_id = id;
-		_access_memory = am;
+		_param_ids = param_ids;
+		//if( (name[0] == '*' and vtype == "pointer") or vtype == "predicate")
+		if( vtype == "predicate" )
+		    _access_memory = true;
+		else _access_memory = false;
 	}
 	
 	~Variable(){
 	}
 	
-	void setName( const string &name = "" ){
+	void setName( const string &name = "1" ){
 		_name = name;
 	}
 
@@ -27,6 +34,10 @@ public:
 	
 	void setID( int id ) {
 		_id = id;
+	}
+
+	void setParameterIDs( vector< int > &params ){
+	    _param_ids = params;
 	}
 	
 	void setAccessMemory( bool am ){
@@ -44,6 +55,10 @@ public:
 	int getID() const{
 		return _id;
 	}
+
+	vector<int> getParameterIDs() const{
+	    return _param_ids;
+	}
 	
 	bool accessMemory() const{
 		return _access_memory;
@@ -52,18 +67,25 @@ public:
 	string toString( bool info = false ) const{
 		string ret = "";
 		if( info )
-			ret = "[VARIABLE]: ";
-		ret += (_access_memory?"*":"") + _name;
+			ret = "[VARIABLE]: " + _vtype + " " ;
+		ret += _name;
 		if( info ){
-			ret += " (" + _vtype +") id: " + to_string( _id );
+			ret += " with id: " + to_string( _id );
+			if( _param_ids.size() ){
+			    ret += "(";
+			    for( unsigned i = 0; i < _param_ids.size(); i++ )
+			        ret += (i?",":"") + to_string( _param_ids[i]);
+			    ret +=")";
+			}
 		}
 		return ret;
 	}
 	
 private:
-	string _name;
-	string _vtype;
-	int _id;
+	string _name; // full name, e.g. on(i,j), i, *i or 10
+	string _vtype; // predicate, pointer or constant
+	int _id; // id of the first symbol
+	vector< int > _param_ids; // list of pointer ids or constants (only for predicates)
 	bool _access_memory;
 };
 

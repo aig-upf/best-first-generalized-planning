@@ -1,0 +1,6 @@
+0. cmp(vector(index),vector(target))
+1. goto(3,!(( zf = 1 )( cf = 0 )))
+2. accumulate(accumulator)
+3. inc(index)
+4. goto(0,!(( zf = 1 )( cf = 0 )))
+5. end

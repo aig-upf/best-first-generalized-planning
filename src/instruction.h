@@ -58,7 +58,13 @@ public:
 		int line = ps->getLine();
 		
 		// State is updated in action function
-		int res = _act->apply( s );
+		//int res = _act->apply( s );
+
+		// Conditional effects
+		int res = 0;
+		if( isApplicable( ps ) ){
+		    res = _act->apply( s );
+		}
 		
 		ps->setLine( line + 1 );
 		

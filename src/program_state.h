@@ -24,19 +24,35 @@ public:
 		_line = l;
 	}
 	
-	State* getState(){
+	State* getState() const{
 		return _state;
 	}
 	
-	int getLine(){
+	int getLine() const{
 		return _line;
 	}
+
+	vector< int > asVector() const{
+        vector< int > res( 1, _line );
+        auto vars = _state->getStateVars();
+        for( auto v : vars ){
+            res.insert( res.end(), v.begin(), v.end() );
+        }
+        return res;
+	}
 	
-	string toString(){
+	string toString() const{
 		string ret = "[PROGRAM STATE]:\nLINE:" + to_string( _line ) + "\n";
 		if( _state )
 			ret += _state->toString();
 		return ret;
+	}
+
+	string toString( StateDescriptor *sd ) const{
+        string ret = "[PROGRAM STATE]:\nLINE:" + to_string( _line ) + "\n";
+        if( _state )
+            ret += _state->toString(sd);
+        return ret;
 	}
 	
 private:

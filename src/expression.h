@@ -1,6 +1,9 @@
 #ifndef __EXPRESSION_H__
 #define __EXPRESSION_H__
 
+#include "variable.h"
+#include "state_descriptor.h"
+
 class Expression{
 public:
 	Expression( const string &name = "", Variable *lhs = 0, Variable *rhs = 0 ){
@@ -39,47 +42,55 @@ public:
 	}
 	
 	// Set the content of left-hand side variable
-	virtual void setLeftVarNum( State *s, int number ) const{
+	virtual void setLeftVarNum( StateDescriptor *sd, State *s, int number ) const{
 		int id = _lhs->getID();
 		string vtype = _lhs->getVType();
-	
-		if( vtype == "counter" )
-			s->setCounter( id, number );
-		else if( vtype == "pointer" ){
-			if( _lhs->accessMemory() ){
-				s->setRegister( s->getPointer( id ), number );
-			}
-			else{
-				s->setPointer( id, number );
-			}
+
+		// Content of pointers cannot be modified, only pointers and grounded predicates
+		assert( (vtype == "pointer" and not _lhs->accessMemory()) or vtype == "predicate" );
+
+		if( vtype == "pointer" ){
+		    s->setPointer( sd, id, number );
 		}
-		else if( vtype == "register" )
-			s->setRegister( id, number );
+		else if( vtype == "predicate" ){
+            auto pred_type = sd->getPredicateName( id );
+		    vector< int > params = _lhs->getParameterIDs();
+		    vector< int > param_obj_idx ( params.size() );
+		    for( unsigned i = 0; i < params.size(); i++ ){
+                param_obj_idx[i] = s->getPointer(sd, params[i] ); // Assign the pointer index
+		    }
+		    s->addRegister( sd, pred_type, param_obj_idx, number );
+		}
 	}
 	
 	// Value of the variable in current state or constant number
-    virtual int getVarNum( const State* s, Variable *v ) const{
+    virtual int getVarNum( StateDescriptor *sd, const State* s, Variable *v ) const{
 		int id = v->getID();
 		string vtype = v->getVType();
 
-		if( vtype == "counter" )
-			return s->getCounter( id );
+		assert( vtype == "pointer" or vtype == "predicate" or vtype == "constant" );
 
-		else if( vtype == "pointer" ){
-			if( v->accessMemory() ){
-				return s->getRegister( s->getPointer( id ) );
-			}
-			return s->getPointer( id );
+		if( vtype == "pointer" ){
+		    // ToDo alternative implementation of access to objects,
+		    //  which would require the Instance as parameter
+			//if( v->accessMemory() ){
+			//	return s->getRegister( s->getPointer( id ) );
+			//}
+			return s->getPointer( sd, id );
 		}	
 
-		else if( vtype == "register" )
-			return s->getRegister( id );
-			
-		else if( vtype == "const-pointer" ){
-		    if( v->accessMemory() ) {
-                return s->getRegister(s->getConstPointer(id));
+		else if( vtype == "predicate" ){
+            auto pred_type = sd->getPredicateName( id );
+            vector< int > params = v->getParameterIDs();
+            vector< int > param_obj_idx ( params.size() );
+            for( unsigned i = 0; i < params.size(); i++ ){
+                if( params[i] < 0 ){ // the param is a constant object
+                    param_obj_idx[i] = -(params[i]+1); // constants are 0-indexed
+                }
+                else // the param is a pointer
+                    param_obj_idx[i] = s->getPointer(sd, params[i] );
             }
-			return s->getConstPointer( id );
+		    return s->getRegister( sd, pred_type, param_obj_idx );
 		}
 
 		// Otherwise is a constant
@@ -87,34 +98,19 @@ public:
     }
         
     // Return the left-hand side value
-    virtual int getLHS( const State* s ) const{
-		return getVarNum( s, _lhs );
+    virtual int getLHS( StateDescriptor *sd, const State* s ) const{
+		return getVarNum( sd, s, _lhs );
 	}
         
 	// Return the right-hand side value     
-	virtual int getRHS( const State* s ) const{
-		return getVarNum( s, _rhs );
-	}
-	
-	// Return
-	virtual int getLeftVariable( const State *s ) const{
-		if( !_lhs->accessMemory() )
-			return _lhs->getID();
-		return s->getRegister( _lhs->getID() );
-	}
-	
-	virtual int getLeftVariableDomain( const State *s ) const{
-		string vtype = _lhs->getVType();
-		
-		if( vtype == "register" )
-			return MAX_VAL; // Max content of the memory
-		return s->getNumRegisters(); // Size of the memory
+	virtual int getRHS( StateDescriptor *sd, const State* s ) const{
+		return getVarNum( sd, s, _rhs );
 	}
 
 protected:
 	string _name;
-	Variable *_lhs; // if negative is a num
-	Variable *_rhs; // if negative is a num
+	Variable *_lhs;
+	Variable *_rhs;
 };
 
 #endif

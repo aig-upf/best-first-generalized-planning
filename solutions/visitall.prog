@@ -1,0 +1,8 @@
+0. visit(i,j)
+1. inc(i)
+2. goto(0,!(( zf = 1 )( cf = 0 )))
+3. dec(i)
+4. goto(3,!(( zf = 1 )( cf = 0 )))
+5. inc(j)
+6. goto(0,!(( zf = 1 )( cf = 0 )))
+7. end

@@ -1,0 +1,8 @@
+0. pick(b1,r1,g1)
+1. inc(r2)
+2. move(r1,r2)
+3. drop(b1,r2,g1)
+4. move(r2,r1)
+5. inc(b1)
+6. goto(0,!(( zf = 1 )( cf = 0 )))
+7. end

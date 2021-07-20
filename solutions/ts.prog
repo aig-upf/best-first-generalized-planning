@@ -1,0 +1,6 @@
+0. inc(a)
+1. vector-add(b,a)
+2. vector-dec(a)
+3. test-min(vector(a))
+4. goto(0,!(( zf = 1 )( cf = 0 )))
+5. end

@@ -1,0 +1,7 @@
+0. swap(i,j)
+1. inc(i)
+2. goto(0,!(( zf = 1 )( cf = 0 )))
+3. set(i,j)
+4. inc(j)
+5. goto(1,!(( zf = 1 )( cf = 0 )))
+6. end

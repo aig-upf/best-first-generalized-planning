@@ -9,7 +9,7 @@
 
 struct CmpNodes{
     bool operator()(const Node* lhs, const Node* rhs) const{
-        return lhs->f() > rhs->f();
+        return (lhs->f() > rhs->f()) or ( lhs->f() == rhs->f() and lhs->getID() > rhs->getID() );
     }
 };
 
@@ -175,13 +175,20 @@ public:
 			
 		vector< Instruction* > vi = _gd->getInstructions( pc_max );
 		
-		// [1] Symmetry Breaking - only Gotos after CMP
+		// [1] Symmetry Breaking - only Gotos after CMP or TEST
 		bool only_gotos = false;
 		bool gotos_enabled = false;
 		if( pc_max > 0 ){
 			PlanningAction *pa = dynamic_cast<PlanningAction*>( p->getInstruction( pc_max-1 ) );
-			only_gotos = ( pa &&  ( (pa->getName()).substr(0,3) == "cmp" ) );
-			gotos_enabled = ( pa && (pa->getType() == "math") );
+			if( pa ){
+			    auto act_name = pa->getName();
+			    size_t pos = act_name.find( "(" );
+			    if( pos != string::npos ){
+                    auto name = act_name.substr(0, pos );
+			        only_gotos = ( name == "cmp" or name == "test-max" or name == "test-min" );
+			    }
+			    gotos_enabled = (pa->getType() == "math");
+			}
 		}
 		
 		vector< Node* > childs;
@@ -254,7 +261,7 @@ public:
 	}
 	
 	virtual Node* solve(){		
-		Node *root = new Node( new Program( _program_lines ), vector<int>( _heuristics.size(), 0 ) );								
+		Node *root = new Node( new Program( _program_lines ), vector<int>( _heuristics.size(), 0 ), 0 );
 		
 		addNode( root );
 		
@@ -291,6 +298,7 @@ public:
 				_evaluated_nodes++;
 				//childs[ i ]->setG( next_g );
 				childs[ i ]->setF( h( childs[ i ] ) );
+				childs[ i ]->setID( _evaluated_nodes );
 				
 				if( isGoal( childs[ i ] ) ){
 					addNode( childs[ i ] );

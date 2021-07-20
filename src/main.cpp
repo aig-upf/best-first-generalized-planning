@@ -28,6 +28,12 @@ int main(  int argc, const char* argv[] ){
 		return -1;
 	}
 
+	int precision = 3;
+	cout.setf( ios::fixed );
+	cout.precision( precision );
+
+	time_t start, parse_time;
+	time( &start );
 		
 	int program_lines = stoi( argv[ 1 ] );	
 	
@@ -49,8 +55,9 @@ int main(  int argc, const char* argv[] ){
 		delete parser;
 		return -3;
 	}
-	
-	cout << "[INFO] Parsed domain" << endl;	
+
+	time( &parse_time );
+	cout << "[INFO] Parsed domain. [" << difftime( parse_time, start ) << "]" << endl;
 	
 	// Generating the GP problem
 	GeneralizedPlanningProblem *gpp = new GeneralizedPlanningProblem();
@@ -69,7 +76,7 @@ int main(  int argc, const char* argv[] ){
 		}
 		ifs_instance.close();
 		
-		if( parser->parseInstance( dom, ins, input_instance ) )
+		if( parser->parseInstance( dom, ins, input_instance, i-2 ) )
 			gpp->addInstance( ins );
 		else{
 			delete ins;
@@ -77,16 +84,22 @@ int main(  int argc, const char* argv[] ){
 			return -4;
 		}
 	}
-	
-	cout << "[INFO] Generalized Planning Problem created." << endl;
+
+	time_t gpp_time;
+	time( &gpp_time );
+	cout << "[INFO] Generalized Planning Problem created. [" << difftime( gpp_time, parse_time ) << "]" << endl;
 	
 	GeneralizedDomain *gd = new GeneralizedDomain( dom, program_lines );
-	
-	cout << "[INFO] Generalized Domain created." << endl;
+
+	time_t gd_time;
+	time( &gd_time );
+	cout << "[INFO] Generalized Domain created. [" << difftime( gd_time, gpp_time ) << "]" << endl;
 			
 	Engine *engine = new BFS( program_lines, gd, gpp );
-	
-	cout << "[INFO] Engine created." << endl;
+
+	time_t engine_time;
+	time( &engine_time );
+	cout << "[INFO] Engine created. [" << difftime( engine_time, gd_time ) << "]" << endl;
 	
 	string heuristics = "";
 	// Default heuristics
@@ -114,19 +127,9 @@ int main(  int argc, const char* argv[] ){
 			heuristics += "_" + h_name;
 		}
 	}
-	
-	/*
-	vector< int > ids = {2,2,0,7,0,13,7,0};
-	Program *p = new Program( program_lines );
-	for( int i = 0; i < program_lines; i++ )
-		p->setInstruction( i, gd->getInstruction( i, ids[ i ] ) );
-	cout << p->toString(false) << endl;
-	vector< ProgramState* > vps = p->run( gpp );
-	for( int i = 0; i < int( vps.size() ); i++ )
-		cout << vps[ i ]->toString() << endl;
-	*/
-	
-	cout << "[INFO] Searching..." << endl;
+	time_t init_search_time;
+	time( &init_search_time );
+	cout << "[INFO] Searching... [" << difftime(init_search_time,engine_time) << "]" << endl;
 	
 	Node *res = engine->solve();
 	
@@ -136,7 +139,14 @@ int main(  int argc, const char* argv[] ){
 		outfile = "experiments/" + problem_folder.substr( problem_pos + 1, problem_folder.length() - 2 - problem_pos ) + heuristics;
 		
 	}
-		
+
+	time_t end_time;
+	time( &end_time );
+    ostringstream total_time, search_time;
+    total_time.setf(ios::fixed); search_time.setf(ios::fixed);
+    total_time.precision( precision ); search_time.precision( precision);
+    total_time << difftime(end_time, start); search_time << difftime(end_time, init_search_time );
+
 	string output = "";
 	
 	if( res != NULL ){
@@ -150,6 +160,8 @@ int main(  int argc, const char* argv[] ){
 		output += "[INFO] Expanded: " + to_string( engine->getExpanded() ) + "\n";
 		output += "[INFO] Evaluated: " + to_string( engine->getEvaluated() ) + "\n";
 		output += p->toString( false )  + "\n";
+		output += "[INFO] Total time: " + total_time.str() + "\n";
+        output += "[INFO] Search time: " + search_time.str() + "\n";
 	
 		cout << output;	
 		cout << "[INFO] Program file: " << outfile << ".prog" << endl;	
@@ -157,7 +169,9 @@ int main(  int argc, const char* argv[] ){
 	else{
 		output += "[INFO] SOLUTION NOT FOUND :(\n";
 		output += "[INFO] Expanded: " + to_string( engine->getExpanded() ) + "\n";
-		output += "[INFO] Evaluated: " + to_string( engine->getEvaluated() ) + "\n";	
+		output += "[INFO] Evaluated: " + to_string( engine->getEvaluated() ) + "\n";	;
+        output += "[INFO] Total time: " + total_time.str() + "\n";
+        output += "[INFO] Search time: " + search_time.str() + "\n";
 		cout << output;
 	}
 

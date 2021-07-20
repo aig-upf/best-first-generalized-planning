@@ -1,8 +1,8 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4600833.svg)](https://doi.org/10.5281/zenodo.4600833)
+<!-- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4600833.svg)](https://doi.org/10.5281/zenodo.4600833) -->
 
 # Best First Generalized Planning
-Heuristic and evaluation techniques for searching programs that generally solve planning problems.
-This framework uses a domain specific language for planning with counters, constant pointers, pointers and memory registers.
+Heuristic and evaluation techniques for searching programs that generally solve a set of planning problems.
+This framework uses a domain specific language for planning with pointers and functions over pointers.
 It starts with a short tutorial, and later explains every step in more detail.
 
 ## Short Tutorial
