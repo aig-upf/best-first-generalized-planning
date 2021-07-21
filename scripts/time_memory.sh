@@ -8,7 +8,7 @@ for (( j=3; j < argc; j++ )); do
 done
 
 if [ $validator != $1 ] && [ $# -eq 3 ]; then
-	experiments_file=$experiments_file"_h5_h1"
+	experiments_file=$experiments_file"_h5_h7"
 fi
 
 experiments_file=$experiments_file".out"
